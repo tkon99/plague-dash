@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PlagueDash — UMM mod project (.NET Framework 4.8 class library).
+
+  BUILD PREREQUISITES (do these once):
+    1. Install UnityModManager (UMM) for Plague Inc: Evolved. This patches your
+       game install and drops the modding DLLs into:
+         <PlagueInc>\PlagueIncEvolved_Data\Managed\UnityModManager\
+       Get UMM from https://www.nexusmods.com/site/mods/21 and follow its setup.
+
+  Then build with Visual Studio 2022, or from a Developer Command Prompt:
+       msbuild PlagueDash.csproj /p:Configuration=Release
+
+  The GAME_MANAGED property below points at your install. It already matches the
+  default Steam path on this machine; if Plague Inc is elsewhere, edit it here.
+-->
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>PlagueDash</RootNamespace>
+    <AssemblyName>PlagueDash</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+
+    <!-- Your Plague Inc: Evolved install. Edit if Steam lives elsewhere. -->
+    <GameManaged>C:\Program Files (x86)\Steam\steamapps\common\PlagueInc\PlagueIncEvolved_Data\Managed</GameManaged>
+
+    <!-- .NET Framework 4.8 reference assemblies. If the .NET 4.8 Developer Pack is
+         installed, MSBuild finds these automatically and this override is unused.
+         If it's NOT installed (common on minimal BuildTools setups), this points
+         MSBuild at the offline reference assemblies bundled under tools/net48ref
+         (extracted from the Microsoft.NETFramework.ReferenceAssemblies.net48
+         NuGet package). FrameworkPathOverride is the documented fallback. -->
+    <FrameworkPathOverride>$(MSBuildThisFileDirectory)tools\net48ref\build\.NETFramework\v4.8</FrameworkPathOverride>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugType>none</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(GameManaged)\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(GameManaged)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(GameManaged)\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(GameManaged)\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(GameManaged)\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityModManager">
+      <!-- Dropped here by UMM after you install it for Plague Inc. -->
+      <HintPath>$(GameManaged)\UnityModManager\UnityModManager.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <!-- Dropped here by UMM after install. -->
+      <HintPath>$(GameManaged)\UnityModManager\0Harmony.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System" />
+    <!-- UMM/Harmony were compiled against netstandard2.0, so their public surface
+         (System.Object etc.) resolves to netstandard. Add the facade reference. -->
+    <Reference Include="netstandard">
+      <HintPath>$(FrameworkPathOverride)\Facades\netstandard.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Main.cs" />
+    <Compile Include="StatsRecorder.cs" />
+    <Compile Include="LiveState.cs" />
+    <Compile Include="DashboardServer.cs" />
+    <Compile Include="MenuButtonOverlay.cs" />
+    <Compile Include="DiseaseSnapshot.cs" />
+    <Compile Include="CountrySnapshot.cs" />
+    <Compile Include="Purchase.cs" />
+    <Compile Include="TechSnapshot.cs" />
+    <Compile Include="Patches\DiseaseStatsPatch.cs" />
+    <Compile Include="Patches\RunLifecyclePatch.cs" />
+    <Compile Include="Patches\DnaTrackingPatch.cs" />
+  </ItemGroup>
+
+  <!-- Dashboard UI + Chart.js, baked into the DLL as embedded resources. LogicalName
+       is the exact string passed to GetManifestResourceStream at runtime. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\dashboard\index.html">
+      <LogicalName>PlagueDash.dashboard.index.html</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\dashboard\style.css">
+      <LogicalName>PlagueDash.dashboard.style.css</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\dashboard\app.js">
+      <LogicalName>PlagueDash.dashboard.app.js</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\dashboard\vendor\chart.js">
+      <LogicalName>PlagueDash.dashboard.chart.js</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
+  <!-- After build: copy the DLL + Info.json to the game's Mods folder so the
+       next game launch picks it up. Disabled by default; set CopyToMods=true. -->
+  <Target Name="CopyToMods" AfterTargets="Build" Condition=" '$(CopyToMods)' == 'true' ">
+    <PropertyGroup>
+      <ModsDir>C:\Program Files (x86)\Steam\steamapps\common\PlagueInc\Mods\PlagueDash</ModsDir>
+    </PropertyGroup>
+    <Copy SourceFiles="$(OutputPath)PlagueDash.dll" DestinationFolder="$(ModsDir)" />
+    <Copy SourceFiles="Info.json" DestinationFolder="$(ModsDir)" />
+  </Target>
+</Project>
