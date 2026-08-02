@@ -20,18 +20,22 @@ What it does:
   3. Stages PlagueDash.dll + Info.json into dist/PlagueDash-<version>.zip in the
      UMM-expected structure (PlagueDash/... so unzipping into Mods/ lands right).
   4. Commits the Info.json bump, tags v<version>, pushes main + the tag.
-  5. Uploads the zip to the GitHub Release that the workflow just created (via gh).
+  5. Uploads the zip to the GitHub Release the workflow just created. Uses `gh`
+     if authed, otherwise falls back to the git-credential-manager token via the
+     API (so it works without `gh auth login`, as long as `git push` does).
 
 Prerequisites:
   - VS 2022 Build Tools + UMM installed for Plague Inc (see mod/README.md).
-  - git remote `origin` pointing at GitHub.
-  - The [GitHub CLI](https://cli.github.com/) (`gh`) authed, for step 5.
+  - git remote `origin` pointing at GitHub, with push credentials configured
+    (the upload reuses git's stored token if `gh` isn't authed).
 """
 import json
+import os
 import re
-import shutil
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 import zipfile
 from pathlib import Path
 
@@ -92,27 +96,93 @@ def main():
     if do_upload:
         # 5. Wait for the workflow to create the release shell, then attach the zip.
         print("\n  Waiting for the GitHub Release to be created by CI...")
-        repo = subprocess.check_output(
-            ["gh", "repo", "view", "--json", "nameWithOwner", "-q", ".nameWithOwner"],
-            text=True).strip()
-        # The release.yml uses generate_release_notes + the tag; poll for it.
         import time
+
+        repo = _repo_slug()
+        api = f"https://api.github.com/repos/{repo}/releases/tags/{tag}"
+        release_id = None
         for _ in range(60):  # up to ~5 min
-            r = subprocess.run(["gh", "release", "view", tag, "--repo", repo],
-                               capture_output=True, text=True)
-            if r.returncode == 0:
-                break
+            token = _gh_token()
+            req = urllib.request.Request(api, headers=_auth_headers(token))
+            try:
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    release_id = json.load(r).get("id")
+                    break
+            except urllib.error.HTTPError as e:
+                if e.code != 404:
+                    raise
+            except Exception:
+                pass
             time.sleep(5)
-        else:
-            sys.exit(f"Release {tag} did not appear in time; attach manually: "
-                     f"gh release upload {tag} {zip_name}")
-        run(["gh", "release", "upload", tag, str(zip_name), "--repo", repo, "--clobber"])
+        if release_id is None:
+            sys.exit(f"Release {tag} did not appear in time. Attach manually:\n"
+                     f"  gh release upload {tag} {zip_name}")
+
+        _upload_asset(repo, release_id, tag, zip_name)
         print(f"\n=== Released v{version}. ===")
         print(f"    {zip_name} attached to https://github.com/{repo}/releases/tag/{tag}")
     else:
         print(f"\n=== Built + packaged + tagged {tag} (not uploaded). ===")
-        print(f"    {zip_name} ready; the tag push still triggers CI to cut the release.")
+        print(f"    {zip_name} ready; the tag push still triggered CI to cut the release.")
         print(f"    Attach manually if needed: gh release upload {tag} {zip_name}")
+
+
+def _repo_slug():
+    """Resolve the owner/repo slug from the git remote."""
+    url = subprocess.check_output(
+        ["git", "remote", "get-url", "origin"], cwd=ROOT, text=True).strip()
+    # accept https://github.com/owner/repo(.git) or git@github.com:owner/repo(.git)
+    import re
+    m = re.search(r"github\.com[:/]([^/]+/[^/]+?)(?:\.git)?$", url)
+    return m.group(1) if m else "tkon99/plague-dash"
+
+
+def _gh_token():
+    """A GitHub API token: prefer GH_TOKEN env, then git-credential-manager."""
+    env = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if env:
+        return env
+    # Fall back to the token git itself uses to push (credential manager).
+    try:
+        cred = subprocess.run(
+            ["git", "credential", "fill"],
+            input="protocol=https\nhost=github.com\n\n",
+            capture_output=True, text=True, timeout=10)
+        for line in cred.stdout.splitlines():
+            if line.startswith("password="):
+                return line[len("password="):]
+    except Exception:
+        pass
+    return None
+
+
+def _auth_headers(token):
+    h = {"Accept": "application/vnd.github+json"}
+    if token:
+        h["Authorization"] = f"token {token}"
+    return h
+
+
+def _upload_asset(repo, release_id, tag, zip_path):
+    """Upload the zip to a release. Tries `gh` first, then the API directly
+    (using the git-credential-manager token) so it works without `gh auth login`."""
+    # Prefer the gh CLI if it's authed.
+    if subprocess.run(["gh", "auth", "status"], capture_output=True).returncode == 0:
+        run(["gh", "release", "upload", tag, str(zip_path), "--repo", repo, "--clobber"])
+        return
+    token = _gh_token()
+    if not token:
+        sys.exit(f"No GitHub token available (GH_TOKEN env empty, and `gh` not authed). "
+                 f"Run `gh auth login`, then: gh release upload {tag} {zip_path}")
+    url = (f"https://uploads.github.com/repos/{repo}/releases/{release_id}"
+           f"/assets?name={zip_path.name}")
+    with open(zip_path, "rb") as f:
+        data = f.read()
+    req = urllib.request.Request(
+        url, data=data, method="POST",
+        headers={**_auth_headers(token), "Content-Type": "application/zip"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        json.load(r)
 
 
 if __name__ == "__main__":
