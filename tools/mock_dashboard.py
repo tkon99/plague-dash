@@ -56,20 +56,32 @@ def normalize_purchase(p):
 
 
 def enrich_samples(samples):
-    """Old exports predate several mod fixes. Synthesize the fields the current
-    mod emits: curePct = cumulative research / effort needed; dnaSpent made
-    monotonic (the high-water mark of the net field, matching the new cumulative
-    tracking); dnaEarned = cumulativeSpent + balance."""
+    """Old exports predate several mod fixes. Match the current mod's output:
+    - curePct: use the run's real value if present, else synthesize from
+      cumulative research / effort needed. Apply the monotonic high-water-mark
+      clamp the mod now applies (a failed-cure reset like 99%->1% shouldn't
+      make the race chart snap backwards).
+    - dnaSpent: monotonic high-water mark of the net field (matches the mod's
+      own cumulative tracking).
+    - dnaEarned: cumulativeSpent + balance."""
     out = []
     research = 0.0
     peak_spent = 0.0
     peak_earned = 0.0
+    peak_cure = 0.0
+    has_real_cure = any("curePct" in s for s in samples)
     for i, s in enumerate(samples):
         if i > 0:
             prev = out[i - 1]
             gap = max(0, s["day"] - prev["day"])
             research += (prev.get("cureSpd") or 0) * gap
         need = s.get("cureNeed") or 1
+        if has_real_cure:
+            cp = s.get("curePct") or 0
+        else:
+            cp = min(1.0, research / need)
+        # monotonic clamp — the mod's high-water mark for the race chart/gauge
+        peak_cure = max(peak_cure, cp)
         # The old dnaSpent is net (drops on devolve). The new mod tracks the
         # monotonic high-water mark; emulate that so the mock matches.
         raw_spent = s.get("dnaSpent") or 0
@@ -78,7 +90,7 @@ def enrich_samples(samples):
         peak_earned = max(peak_earned, earned)
         out.append(dict(
             s,
-            curePct=min(1.0, research / need),
+            curePct=peak_cure,
             dnaSpent=peak_spent,
             dnaEarned=peak_earned,
         ))

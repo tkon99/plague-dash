@@ -16,6 +16,12 @@ namespace PlagueDash.Patches
     {
         private static int _lastDay = -1;
         private static bool _runEnded;          // true once the run has finished
+        // High-water mark of cure progress. The game's cureCompletePercent can
+        // DROP sharply — e.g. from 99% to 1% when a near-complete cure "fails"
+        // against a globally-established plague and effort resets. That snap
+        // disrupts the race chart/gauge (looks like a bug). For display we keep
+        // cure monotonic: once it has reached a peak it never visibly regresses.
+        private static double _curePeak;
 
         /// <summary>The most recently computed in-game day, for other patches (e.g.
         /// DNA-purchase events need a day but don't compute one themselves).</summary>
@@ -31,6 +37,7 @@ namespace PlagueDash.Patches
             _tickFallback = 0;
             _countrySamples = null;
             _runEnded = false;
+            _curePeak = 0;
             RunLifecyclePatch.ResetMeta();
             EndGamePatch.ResetEndGame();
         }
@@ -119,7 +126,16 @@ namespace PlagueDash.Patches
             }
             // cure percent: the game's own cureCompletePercent (0..1).
             double? curePct = F(__instance, "cureCompletePercent");
-            if (curePct.HasValue) s.curePct = curePct.Value > 1.0 ? curePct.Value / 100.0 : curePct.Value;
+            if (curePct.HasValue)
+            {
+                double cp = curePct.Value > 1.0 ? curePct.Value / 100.0 : curePct.Value;
+                // Clamp to the high-water mark so a failed-cure reset (e.g. 99% -> 1%
+                // when a near-complete cure fails against an established plague)
+                // doesn't make the race chart/gauge snap backwards. The displayed
+                // cure progress is monotonic — once reached, effort isn't "lost".
+                if (cp > _curePeak) _curePeak = cp;
+                s.curePct = _curePeak;
+            }
 
             // --- mutation ---
             s.mutCnt = F(__instance, "mutationCounter");
