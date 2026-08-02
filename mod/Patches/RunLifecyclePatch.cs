@@ -86,9 +86,15 @@ namespace PlagueDash.Patches
         {
             try
             {
-                // SPDisease.drillZeroCountry is the patient-zero / player-selected
-                // start country (a Country object). Read its display name.
-                object country = Traverse.Create(disease).Property("drillZeroCountry").GetValue();
+                // SPDisease.drillZeroCountry is set-only ({set;}), so reading it as
+                // a property returns null. The protected backing field on Disease
+                // (_drillZeroCountry) holds the actual Country reference.
+                object country = AccessTools.Field(typeof(Disease), "_drillZeroCountry").GetValue(disease);
+                if (country == null)
+                {
+                    // Fallback: try the property in case a build exposes a getter.
+                    country = Traverse.Create(disease).Property("drillZeroCountry").GetValue();
+                }
                 if (country == null) return "";
                 string name = Traverse.Create(country).Field("name").GetValue<string>();
                 return name ?? "";
@@ -108,5 +114,47 @@ namespace PlagueDash.Patches
             }
             catch { return null; }
         }
+    }
+
+    /// <summary>
+    /// Authoritative run-end detection. CInterfaceManager.EndGame is raised once
+    /// at the exact moment the end-screen appears, for BOTH outcomes (extinction
+    /// win and cure-complete loss). Its parameters carry the full result — unlike
+    /// polling IGame.CurrentGameState (which doesn't reliably reach EndGame on
+    /// extinction) or the nonexistent IGame.gameWon field.
+    ///
+    /// Verified signature against Assembly-CSharp.dll:
+    ///   void EndGame(IGame.GameType gameType, bool didWin, Disease diseaseWon,
+    ///                IGame.EndGameResult resultType, CUIManager.Unlock unlocked)
+    /// EndGameResult (Int32): Dead=2 (extinction win), Cured=3 (cure loss).
+    /// </summary>
+    [HarmonyPatch(typeof(CInterfaceManager), "EndGame")]
+    internal static class EndGamePatch
+    {
+        private static bool _fired;  // guard: EndGame can fire more than once; act once
+
+        private static void Postfix(bool didWin, object resultType)
+        {
+            if (!Main.Enabled) return;
+            if (_fired) return;
+            _fired = true;
+            try
+            {
+                // resultType is IGame.EndGameResult boxed as object; read its int.
+                // Dead=2 means everyone died (plague wins); Cured=3 means the cure
+                // completed (plague loses).
+                int result = 0;
+                if (resultType != null) result = System.Convert.ToInt32(resultType);
+                bool extinctionWin = didWin && result == 2;
+                bool cureLoss = !didWin && result == 3;
+                Main.Log($"EndGame: didWin={didWin} result={result}" +
+                         (extinctionWin ? " (extinction win)" : cureLoss ? " (cure loss)" : ""));
+                StatsRecorder.EndRun(didWin);
+            }
+            catch (System.Exception e) { Main.Log("EndGame postfix failed: " + e.Message); }
+        }
+
+        /// <summary>Reset the once-per-run guard. Called from DiseaseStatsPatch.Reset().</summary>
+        public static void ResetEndGame() => _fired = false;
     }
 }

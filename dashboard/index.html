@@ -16,13 +16,27 @@
       <h1>Plague Dash</h1>
       <span id="live-badge" class="badge">connecting…</span>
     </div>
-    <div id="run-meta" class="run-meta">
-      <span class="kv"><span class="k">Plague</span><span class="v" id="m-plague">—</span></span>
-      <span class="kv"><span class="k">Difficulty</span><span class="v" id="m-diff">—</span></span>
-      <span class="kv"><span class="k">Origin</span><span class="v" id="m-origin">—</span></span>
-      <span class="kv"><span class="k">Status</span><span class="v" id="m-status">—</span></span>
+    <div class="topbar-right">
+      <div id="run-meta" class="run-meta">
+        <span class="kv"><span class="k">Plague</span><span class="v" id="m-plague">—</span></span>
+        <span class="kv"><span class="k">Difficulty</span><span class="v" id="m-diff">—</span></span>
+        <span class="kv"><span class="k">Origin</span><span class="v" id="m-origin">—</span></span>
+        <span class="kv"><span class="k">Status</span><span class="v" id="m-status">—</span></span>
+      </div>
+      <div class="run-controls">
+        <select id="run-select" class="run-select" title="Switch between the live run and archived runs from this session">
+          <option value="live">● Live run</option>
+        </select>
+        <a href="#" id="export-btn" class="export-btn" title="Download this run as JSON">export run</a>
+      </div>
     </div>
   </header>
+
+  <!-- Shown when viewing an archived run instead of the live stream -->
+  <div class="run-banner" id="run-banner" hidden>
+    Viewing an <b>archived run</b> — charts are frozen at its end state. Switch back to
+    <a href="#" id="run-banner-live">● Live run</a> to follow the game.
+  </div>
 
   <!-- KPI strip: current values from the latest sample -->
   <section class="kpis" id="kpis">
@@ -30,75 +44,90 @@
     <div class="kpi"><div class="kpi-label">Dead</div><div class="kpi-val" id="k-dead">—</div><div class="kpi-sub" id="k-dead-pct">—</div></div>
     <div class="kpi"><div class="kpi-label">Day</div><div class="kpi-val" id="k-day">—</div><div class="kpi-sub">in-game</div></div>
     <div class="kpi"><div class="kpi-label">Cure</div><div class="kpi-val" id="k-cure">—</div><div class="kpi-sub" id="k-cure-eta">—</div></div>
-    <div class="kpi"><div class="kpi-label">Spread / day</div><div class="kpi-val" id="k-spread">—</div><div class="kpi-sub">new infected</div></div>
+    <div class="kpi"><div class="kpi-label">DNA</div><div class="kpi-val" id="k-dna">—</div><div class="kpi-sub" id="k-dna-rate">—</div></div>
+    <div class="kpi"><div class="kpi-label">Evolved</div><div class="kpi-val" id="k-evolved">—</div><div class="kpi-sub" id="k-evolved-sub">traits bought</div></div>
   </section>
 
   <main class="grid">
-    <!-- Chart 1: the headline — who wins the race -->
-    <div class="card span-2">
+    <!-- HERO: the race — death vs. cure, whoever hits 100% first -->
+    <section class="card hero span-full">
       <div class="card-head">
-        <h2>Cure Race</h2>
-        <span class="card-sub">Infected &amp; dead vs. cure progress (normalized)</span>
+        <h2>The Race</h2>
+        <span class="card-sub">Death vs. cure — whoever reaches 100% first wins</span>
       </div>
-      <div class="chart-wrap"><canvas id="chart-race"></canvas></div>
-    </div>
+      <div class="race-gauge" id="race-gauge">
+        <div class="race-track">
+          <div class="race-fill race-dead" id="race-dead"></div>
+          <div class="race-fill race-cure" id="race-cure"></div>
+        </div>
+        <div class="race-labels">
+          <span class="race-side dead"><b id="race-dead-pct">—</b> DEAD</span>
+          <span class="race-verdict" id="race-verdict">waiting for data…</span>
+          <span class="race-side cure">CURE <b id="race-cure-pct">—</b></span>
+        </div>
+      </div>
+      <div class="chart-wrap hero-chart"><canvas id="chart-race"></canvas></div>
+    </section>
 
-    <!-- Chart 2: plague stat triangle -->
-    <div class="card">
+    <!-- Plague stats over time — infectivity, severity, lethality -->
+    <section class="card">
       <div class="card-head">
         <h2>Plague Stats</h2>
-        <span class="card-sub">Infectivity · Severity · Lethality</span>
+        <span class="card-sub">Infectivity · severity · lethality over time</span>
       </div>
       <div class="chart-wrap"><canvas id="chart-stats"></canvas></div>
-    </div>
+    </section>
 
-    <!-- Chart 3: cure mechanics -->
-    <div class="card">
+    <!-- DNA economy: earned → spent → kept, with a sparkline -->
+    <section class="card">
       <div class="card-head">
-        <h2>Cure Effort</h2>
-        <span class="card-sub">Effort needed vs. research speed</span>
+        <h2>DNA Flow</h2>
+        <span class="card-sub">What you've earned → spent → kept</span>
       </div>
-      <div class="chart-wrap"><canvas id="chart-cure"></canvas></div>
-    </div>
-
-    <!-- Chart 4: spread velocity -->
-    <div class="card">
-      <div class="card-head">
-        <h2>Spread Speed</h2>
-        <span class="card-sub">New infections per day</span>
+      <div class="dna-flow">
+        <div class="dna-stack" id="dna-stack" title="Proportion of all DNA earned">
+          <div class="dna-seg dna-spent" id="dna-spent-seg"></div>
+          <div class="dna-seg dna-balance" id="dna-balance-seg"></div>
+        </div>
+        <div class="dna-nums">
+          <div class="dna-num"><span class="k">Earned</span><span class="v" id="dna-earned">—</span></div>
+          <div class="dna-num"><span class="k">Spent</span><span class="v" id="dna-spent">—</span></div>
+          <div class="dna-num"><span class="k">Balance</span><span class="v" id="dna-balance">—</span></div>
+          <div class="dna-num"><span class="k">Income/day</span><span class="v" id="dna-rate">—</span></div>
+        </div>
+        <div class="chart-wrap dna-spark"><canvas id="spark-dna"></canvas></div>
       </div>
-      <div class="chart-wrap"><canvas id="chart-spread"></canvas></div>
-    </div>
+    </section>
 
-    <!-- Chart 5: transmission effectiveness -->
-    <div class="card">
+    <!-- Continent Health: % of each continent's population affected over time -->
+    <section class="card">
       <div class="card-head">
-        <h2>Transmission</h2>
-        <span class="card-sub">Air · Sea · Land effectiveness</span>
-      </div>
-      <div class="chart-wrap"><canvas id="chart-transmission"></canvas></div>
-    </div>
-
-    <!-- Chart 6: DNA economy -->
-    <div class="card">
-      <div class="card-head">
-        <h2>DNA Economy</h2>
-        <span class="card-sub">Balance · total earned · total spent</span>
-      </div>
-      <div class="chart-wrap"><canvas id="chart-dna"></canvas></div>
-    </div>
-
-    <!-- Chart 7: continental spread -->
-    <div class="card span-2">
-      <div class="card-head">
-        <h2>Continental Spread</h2>
-        <span class="card-sub toggle" id="continents-toggle" title="Click to toggle">Infected by continent over time</span>
+        <h2>Continent Health</h2>
+        <span class="card-sub">Click a continent to isolate · % of population infected then dead</span>
       </div>
       <div class="chart-wrap"><canvas id="chart-continents"></canvas></div>
-    </div>
+    </section>
+
+    <!-- Every evolve/devolve as an event on the day axis -->
+    <section class="card span-full">
+      <div class="card-head">
+        <h2>Trait Timeline</h2>
+        <span class="card-sub" id="timeline-sub">Every evolve/devolve · colored by category, sized by cost, hollow = devolved</span>
+      </div>
+      <div class="chart-wrap timeline"><canvas id="chart-timeline"></canvas></div>
+    </section>
+
+    <!-- Trait Planner: what can I buy, what does it cost, what does it do -->
+    <section class="card span-2">
+      <div class="card-head">
+        <h2>Trait Planner</h2>
+        <span class="card-sub" id="techs-sub">Evolvable traits — cost &amp; effect</span>
+      </div>
+      <div class="chart-wrap tech-wrap" id="tech-planner"></div>
+    </section>
 
     <!-- Country breakdown table (latest snapshot) -->
-    <div class="card">
+    <section class="card">
       <div class="card-head">
         <h2>Country Breakdown</h2>
         <span class="card-sub" id="countries-sub">Latest snapshot — day —</span>
@@ -109,30 +138,12 @@
           <tbody></tbody>
         </table>
       </div>
-    </div>
-
-    <!-- Purchase feed (evolves/devolves) -->
-    <div class="card span-2">
-      <div class="card-head">
-        <h2>DNA Spent</h2>
-        <span class="card-sub" id="purchases-sub">Trait purchases as they happen</span>
-      </div>
-      <div class="chart-wrap feed-wrap" id="purchase-feed"></div>
-    </div>
-
-    <!-- Trait Planner: what can I buy, what does it cost, what does it do -->
-    <div class="card span-2">
-      <div class="card-head">
-        <h2>Trait Planner</h2>
-        <span class="card-sub" id="techs-sub">Evolvable traits — cost &amp; effect</span>
-      </div>
-      <div class="chart-wrap tech-wrap" id="tech-planner"></div>
-    </div>
+    </section>
   </main>
 
   <footer class="foot">
     <span id="footer-status">No data yet.</span>
-    <span class="dim">Plague Dash · live stream from the game · <a href="#" id="export-btn">export run</a></span>
+    <span class="dim">Plague Dash · live stream from the game</span>
   </footer>
 </body>
 </html>

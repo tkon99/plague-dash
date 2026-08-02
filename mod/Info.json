@@ -1,9 +1,9 @@
 {
   "Id": "PlagueDash",
-  "Version": "0.1.0",
+  "Version": "0.2.0",
   "DisplayName": "Plague Dash",
-  "Author": "plague-dash",
-  "HomePage": "",
+  "Author": "tkon99",
+  "HomePage": "https://github.com/tkon99/plague-dash",
   "AssemblyName": "PlagueDash.dll",
   "EntryMethod": "PlagueDash.Main.Load",
   "ManagerVersion": "0.21.5",

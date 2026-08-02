@@ -59,6 +59,13 @@ namespace PlagueDash
             catch (Exception e) { Main.Log($"RecordPurchase failed: {e.Message}"); }
         }
 
+        /// <summary>Add to the monotonic cumulative DNA spend (called on each evolve).</summary>
+        public static void RecordSpend(double amount)
+        {
+            try { LiveState.AddSpend(amount); }
+            catch (Exception e) { Main.Log($"RecordSpend failed: {e.Message}"); }
+        }
+
         /// <summary>Publish the current Trait Planner list.</summary>
         public static void RecordTechs(TechEntry[] techs)
         {

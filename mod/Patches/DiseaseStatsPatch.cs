@@ -32,15 +32,17 @@ namespace PlagueDash.Patches
             _countrySamples = null;
             _runEnded = false;
             RunLifecyclePatch.ResetMeta();
+            EndGamePatch.ResetEndGame();
         }
 
-        /// <summary>True when the current game has ended (won/lost). Reads the
-        /// IGame.CurrentGameState enum via CGameManager.game. The enum (verified in
-        /// the July 2026 build):
+        /// <summary>True when the current game has reached its end state, so we
+        /// should freeze recording (stop letting post-run menu zeros pollute the
+        /// charts). Reads IGame.CurrentGameState via CGameManager.game:
         ///   None=0, Initialise=1, Choosing=2, ChoosingCountry=3, InProgress=4, EndGame=5
-        /// ONLY EndGame (5) counts as ended — the pre-game states (Choosing,
-        /// ChoosingCountry) are still setup, NOT game over. 'won' is best-effort
-        /// (gameWon if readable; else extinction inference).</summary>
+        /// ONLY EndGame (5) counts. The actual win/lose outcome is determined
+        /// authoritatively by the RunLifecyclePatch.EndGamePatch hook on
+        /// CInterfaceManager.EndGame (which carries didWin + resultType as params);
+        /// this method no longer tries to infer it.</summary>
         private static bool TryGetRunEnded(SPDisease disease, out bool won)
         {
             won = false;
@@ -52,19 +54,8 @@ namespace PlagueDash.Patches
                 if (state == null) return false;
                 int st = System.Convert.ToInt32(state);
                 if (st != 5) return false; // only EndGame counts
-
-                // Ended: best-effort win/lose. gameWon field if present; else infer
-                // from the disease (no infected left + high lethality = extinction win).
-                var wonField = AccessTools.Field(typeof(IGame), "gameWon");
-                if (wonField != null)
-                {
-                    object w = wonField.GetValue(game);
-                    if (w != null) { won = System.Convert.ToBoolean(w); return true; }
-                }
-                double? dead = F(disease, "totalDead");
-                double? inf = F(disease, "totalInfected");
-                if (dead.HasValue && inf.HasValue)
-                    won = dead.Value > 0 && inf.Value <= 0; // everyone dead = plague wins
+                // 'won' here is just a freeze flag placeholder; the real outcome
+                // is set by EndGamePatch. Default to the last-known meta status.
                 return true;
             }
             catch { return false; }
@@ -134,13 +125,14 @@ namespace PlagueDash.Patches
             s.mutCnt = F(__instance, "mutationCounter");
 
             // --- DNA economy ---
-            // Balance and cumulative spent are reliable; cumulative earned is NOT
-            // exposed (dnaPointsGained is per-turn), so derive it: earned ≈ spent +
-            // balance (what you've spent plus what you're holding).
+            // Balance (evoPoints) is reliable. The game's evoPointsSpent is a NET
+            // field (it decreases on devolve), so it can't give a monotonic total
+            // spent. We track our own running cumulative spend in LiveState
+            // (incremented by the EvolveTech patch); read that here.
             s.dna = F(__instance, "evoPoints");
-            s.dnaSpent = F(__instance, "evoPointsSpent");
-            if (s.dnaSpent.HasValue)
-                s.dnaEarned = s.dnaSpent.Value + (s.dna ?? 0);
+            double cumSpent = LiveState.CumulativeDnaSpent;
+            s.dnaSpent = cumSpent;
+            s.dnaEarned = cumSpent + (s.dna ?? 0);
 
             // --- transmission effectiveness ---
             s.airT = F(__instance, "airTransmission");
@@ -236,7 +228,10 @@ namespace PlagueDash.Patches
             try { return System.Convert.ToDouble(v); } catch { return 0; }
         }
 
-        /// <summary>Map Technology.gridType (ETechType int) to a readable category.</summary>
+        /// <summary>Map Technology.gridType (ETechType int) to a readable category.
+        /// Verified against Assembly-CSharp.dll: ETechType is
+        ///   0=transmission, 1=ability, 2=symptom, 3=all.
+        /// (The earlier mapping had this exactly reversed.)</summary>
         private static string TechCategoryOf(object tech)
         {
             try
@@ -246,9 +241,10 @@ namespace PlagueDash.Patches
                 int g = System.Convert.ToInt32(v);
                 switch (g)
                 {
-                    case 0: return "Symptom";
-                    case 1: return "Transmission";
-                    case 2: return "Ability";
+                    case 0: return "Transmission";
+                    case 1: return "Ability";
+                    case 2: return "Symptom";
+                    case 3: return "All";
                     default: return "Type " + g;
                 }
             }

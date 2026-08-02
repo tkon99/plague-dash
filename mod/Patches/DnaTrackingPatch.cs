@@ -45,7 +45,10 @@ namespace PlagueDash.Patches
                 // category field is empty at runtime; gridType (ETechType enum)
                 // is the reliable per-trait category.
                 string category = TechCategory(tech);
-                double cost = Num(tech, "cost");
+                // Technology.cost is the base cost magnitude (>= 0). Report it
+                // unsigned; the action ("evolve"/"devolve") carries the sign
+                // intent and the dashboard renders devolves as refunds.
+                double cost = System.Math.Abs(Num(tech, "cost"));
 
                 var p = new Purchase
                 {
@@ -56,13 +59,21 @@ namespace PlagueDash.Patches
                     cost = cost,
                 };
                 StatsRecorder.RecordPurchase(p);
+
+                // Track our OWN cumulative spend: the game's evoPointsSpent is a
+                // NET field (it decreases on devolve), so it can't give a
+                // monotonic "total spent". Evolves add to our running total;
+                // devolves don't reduce it (a refund isn't un-spending).
+                if (action == "evolve")
+                    StatsRecorder.RecordSpend(cost);
             }
             catch (System.Exception e) { Main.Log("EmitPurchase failed: " + e.Message); }
         }
 
         /// <summary>Map Technology.gridType (ETechType int) to a readable category.
-        /// Standard ETechType layout: 0=Symptom, 1=Transmission, 2=Ability.
-        /// Falls back to the raw value if unknown.</summary>
+        /// Verified against Assembly-CSharp.dll: ETechType is
+        ///   0=transmission, 1=ability, 2=symptom, 3=all.
+        /// (The earlier mapping had this exactly reversed.)</summary>
         private static string TechCategory(object tech)
         {
             try
@@ -72,9 +83,10 @@ namespace PlagueDash.Patches
                 int g = System.Convert.ToInt32(v);
                 switch (g)
                 {
-                    case 0: return "Symptom";
-                    case 1: return "Transmission";
-                    case 2: return "Ability";
+                    case 0: return "Transmission";
+                    case 1: return "Ability";
+                    case 2: return "Symptom";
+                    case 3: return "All";
                     default: return "Type " + g;
                 }
             }

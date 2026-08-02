@@ -47,6 +47,12 @@ namespace PlagueDash
         // Latest Trait Planner list (replaced whenever techs change).
         private static TechEntry[] _techs;
 
+        // Our own cumulative DNA spend (monotonic). The game's evoPointsSpent is a
+        // NET field (it decreases on devolve), so we track a true running total:
+        // each evolve adds its cost; devolves don't reduce it (a refund isn't
+        // un-spending). Reset per run.
+        private static double _cumulativeDnaSpent;
+
         // Run metadata.
         private static string _metaJson = "{\"status\":\"in_progress\"}";
 
@@ -102,6 +108,20 @@ namespace PlagueDash
             }
         }
 
+        /// <summary>Add to our monotonic cumulative DNA spend (called on each evolve).
+        /// Devolves don't reduce it — a refund isn't un-spending.</summary>
+        public static void AddSpend(double amount)
+        {
+            if (amount <= 0) return;
+            lock (_lock) { _cumulativeDnaSpent += amount; _version++; }
+        }
+
+        /// <summary>The monotonic cumulative DNA spent this run.</summary>
+        public static double CumulativeDnaSpent
+        {
+            get { lock (_lock) return _cumulativeDnaSpent; }
+        }
+
         /// <summary>Reset everything for a new run.</summary>
         public static void Reset()
         {
@@ -111,6 +131,7 @@ namespace PlagueDash
                 _purchases.Clear();
                 _countries = null;
                 _lastCountrySnapshotDay = -1;
+                _cumulativeDnaSpent = 0;
                 _metaJson = "{\"status\":\"in_progress\"}";
                 _version++;
             }

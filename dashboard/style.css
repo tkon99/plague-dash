@@ -1,5 +1,7 @@
 /* Plague Dash — dark dashboard theme.
-   Goal: readable at a glance on a second monitor while playing. */
+   Goal: readable at a glance on a second monitor while playing.
+   Layout: asymmetric on purpose — a full-width hero (the race), a mixed
+   3-column row, a full-width timeline, then a 2/1 split for the tools. */
 
 :root {
   --bg: #0d1117;
@@ -50,20 +52,47 @@ html, body {
   border-radius: 10px;
   background: #30363d;
   color: var(--text-dim);
+  white-space: nowrap;
 }
 .badge.live { background: #1f4d2a; color: var(--cure); }
 .badge.error { background: #4a1f1f; color: var(--dead); }
 .badge.paused { background: #3b2f0e; color: var(--accent); }
 
+.topbar-right { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 .run-meta { display: flex; gap: 18px; flex-wrap: wrap; }
 .kv { display: flex; flex-direction: column; line-height: 1.2; }
 .kv .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-dim); }
 .kv .v { font-size: 13px; font-weight: 500; }
 
+.run-controls { display: flex; align-items: center; gap: 12px; }
+.run-select {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  max-width: 260px;
+}
+.run-select:focus { outline: 1px solid var(--accent); }
+.export-btn { font-size: 12px; color: var(--accent); text-decoration: none; white-space: nowrap; }
+.export-btn:hover { text-decoration: underline; }
+
+/* Archive-viewing banner */
+.run-banner {
+  background: #3b2f0e;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 20px;
+  font-size: 12px;
+}
+.run-banner a { color: var(--cure); text-decoration: none; }
+.run-banner a:hover { text-decoration: underline; }
+
 /* ---------- KPI strip ---------- */
 .kpis {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 1px;
   background: var(--border);  /* gap lines */
   border-bottom: 1px solid var(--border);
@@ -76,7 +105,7 @@ html, body {
 .kpi-val { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .kpi-sub { font-size: 11px; color: var(--text-dim); margin-top: 1px; font-variant-numeric: tabular-nums; }
 
-/* ---------- Chart grid ---------- */
+/* ---------- Grid: asymmetric by design ---------- */
 .grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -90,18 +119,94 @@ html, body {
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .span-2 { grid-column: span 2; }
+.span-full { grid-column: 1 / -1; }
 .card-head { margin-bottom: 10px; }
 .card-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
 .card-sub { font-size: 11px; color: var(--text-dim); }
-.card-sub.toggle { cursor: pointer; }
-.card-sub.toggle:hover { color: var(--accent); text-decoration: underline; }
 .chart-wrap { position: relative; height: 230px; }
+.hero-chart { height: 240px; }
 .span-2 .chart-wrap { height: 280px; }
+.timeline { height: 260px; }
+
+/* ---------- The Race: dead-vs-cure gauge ---------- */
+.hero { gap: 10px; }
+.race-gauge { display: flex; flex-direction: column; gap: 6px; }
+.race-track {
+  position: relative;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.race-fill { position: absolute; top: 0; bottom: 0; transition: width 0.4s ease; }
+.race-dead {
+  left: 0;
+  background: linear-gradient(90deg, #4a1f1f, var(--dead));
+  box-shadow: inset 0 0 0 1px rgba(248,81,73,0.35);
+}
+.race-cure {
+  right: 0;
+  background: linear-gradient(270deg, #1f4d2a, var(--cure));
+  box-shadow: inset 0 0 0 1px rgba(63,185,80,0.35);
+}
+.race-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.4px;
+}
+.race-labels b { font-variant-numeric: tabular-nums; font-size: 15px; }
+.race-side.dead { color: var(--dead); }
+.race-side.cure { color: var(--cure); }
+.race-verdict {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ---------- DNA Flow ---------- */
+.dna-flow { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.dna-stack {
+  position: relative;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+}
+.dna-seg { transition: width 0.4s ease; }
+.dna-spent { background: linear-gradient(90deg, #4a1f1f, var(--dead)); }
+.dna-balance { background: linear-gradient(90deg, var(--cure), #2ea043); }
+.dna-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.dna-num { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.dna-num .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-dim); }
+.dna-num .v { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dna-spark { position: relative; height: 130px; flex: 1; min-height: 110px; }
 
 /* Country breakdown table */
 .table-wrap { height: 280px; overflow-y: auto; }
+.country-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.country-table th, .country-table td {
+  padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--border);
+}
+.country-table th {
+  position: sticky; top: 0; background: var(--bg-elev);
+  font-weight: 600; color: var(--text-dim); text-transform: uppercase; font-size: 10px;
+  letter-spacing: 0.5px;
+}
+.country-table td.num { font-variant-numeric: tabular-nums; text-align: right; }
+.country-table tr:hover td { background: rgba(88,166,255,0.06); }
+.country-table .pct-bar { display: inline-block; width: 40px; height: 6px; background: var(--border); border-radius: 3px; margin-left: 6px; vertical-align: middle; position: relative; overflow: hidden; }
+.country-table .pct-bar::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; background: var(--inf); width: var(--pct, 0%); }
 
 /* Trait Planner */
 .tech-wrap { height: 320px; overflow-y: auto; }
@@ -120,36 +225,6 @@ html, body {
 .tech-table .eff .neg { color: var(--dead); }
 .tech-table tr:hover td { background: rgba(88,166,255,0.06); }
 
-/* DNA purchase feed */
-.feed-wrap { height: 280px; overflow-y: auto; }
-.purchase-feed { list-style: none; margin: 0; padding: 0; font-size: 12px; }
-.purchase-feed li {
-  display: grid; grid-template-columns: 56px 1fr auto; gap: 10px;
-  padding: 5px 10px; border-bottom: 1px solid var(--border);
-  font-variant-numeric: tabular-nums;
-}
-.purchase-feed li:hover { background: rgba(88,166,255,0.06); }
-.purchase-feed .day { color: var(--text-dim); }
-.purchase-feed .evolve .name { color: var(--text); }
-.purchase-feed .devolve .name { color: var(--text-dim); font-style: italic; }
-.purchase-feed .cat { color: var(--text-dim); font-size: 11px; margin-left: 6px; }
-.purchase-feed .cost { font-weight: 600; }
-.purchase-feed .cost.spend { color: var(--dead); }
-.purchase-feed .cost.refund { color: var(--cure); }
-.country-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.country-table th, .country-table td {
-  padding: 4px 8px; text-align: left; border-bottom: 1px solid var(--border);
-}
-.country-table th {
-  position: sticky; top: 0; background: var(--bg-elev);
-  font-weight: 600; color: var(--text-dim); text-transform: uppercase; font-size: 10px;
-  letter-spacing: 0.5px;
-}
-.country-table td.num { font-variant-numeric: tabular-nums; text-align: right; }
-.country-table tr:hover td { background: rgba(88,166,255,0.06); }
-.country-table .pct-bar { display: inline-block; width: 40px; height: 6px; background: var(--border); border-radius: 3px; margin-left: 6px; vertical-align: middle; position: relative; overflow: hidden; }
-.country-table .pct-bar::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; background: var(--inf); width: var(--pct, 0%); }
-
 /* ---------- Footer ---------- */
 .foot {
   display: flex;
@@ -159,18 +234,18 @@ html, body {
   color: var(--text-dim);
   border-top: 1px solid var(--border);
 }
-.foot a { color: var(--accent); text-decoration: none; }
-.foot a:hover { text-decoration: underline; }
 .dim { color: var(--text-dim); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
   .grid { grid-template-columns: repeat(2, 1fr); }
-  .span-2 { grid-column: span 2; }
   .kpis { grid-template-columns: repeat(3, 1fr); }
+  .dna-nums { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 640px) {
   .grid { grid-template-columns: 1fr; }
-  .span-2 { grid-column: span 1; }
+  .span-2, .span-full { grid-column: span 1; }
   .kpis { grid-template-columns: repeat(2, 1fr); }
+  .cont-row { grid-template-columns: 1fr; }
+  .cont-legend { flex-wrap: wrap; }
 }

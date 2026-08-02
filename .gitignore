@@ -20,8 +20,9 @@ mod/.vs/
 [Bb]in/
 [Oo]bj/
 
-# Packaged mod release zips
+# Packaged mod release zips (uploaded to GitHub Releases, not committed)
 *.zip
+dist/
 
 # Local tooling / huge extracted reference assemblies (mod/tools/net48ref)
 .zcode/

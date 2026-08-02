@@ -1,0 +1,47 @@
+# Creates a GitHub Release shell when a version tag is pushed.
+#
+# The mod itself can't be built in CI — it compiles against Plague Inc's
+# proprietary Assembly-CSharp.dll and Unity engine DLLs, which can't be placed
+# on a GitHub-hosted runner. So the release artifact is built locally by
+# tools/release.py, which also uploads the zip to this release via `gh` once
+# CI has created it.
+#
+# This workflow only cuts the release with generated notes + install steps; the
+# binary is attached moments later by tools/release.py.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # needed to create the release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Plague Dash ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            ## Install
+
+            1. Set up **[UnityModManager](https://www.nexusmods.com/site/mods/21)** for Plague Inc: Evolved (once, ever).
+            2. Download **`PlagueDash-${{ github.ref_name }}.zip`** below.
+            3. Drag the zip onto UMM, or unzip it into `…\Steam\steamapps\common\PlagueInc\Mods\` so you have `Mods\PlagueDash\PlagueDash.dll` + `Info.json`.
+            4. Launch Plague Inc: Evolved, enable **Plague Dash** in the UMM in-game menu.
+            5. On the main menu, click **☣ Open Plague Dash** (or open `http://localhost:8765`).
+
+            Full instructions in the [README](https://github.com/tkon99/plague-dash#install-for-players).
+
+            ---
+            **What changed** is in the auto-generated changelog below.
