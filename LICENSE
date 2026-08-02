@@ -1,0 +1,34 @@
+MIT License
+
+Copyright (c) 2026 tkon99
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Plague Dash is a mod for Plague Inc: Evolved. "Plague Inc: Evolved" and its
+associated trademarks are the property of Ndemic Creations. This mod is not
+affiliated with or endorsed by Ndemic Creations. This license covers only the
+original source code in this repository; it does not extend to the game or its
+proprietary assemblies (e.g. Assembly-CSharp.dll, the Unity engine modules)
+that the mod compiles against but does not redistribute.
+
+The bundled dashboard charting library (dashboard/vendor/chart.js) is
+Chart.js v4.4.1, copyright its contributors under the MIT license
+(https://github.com/chartjs/Chart.js).

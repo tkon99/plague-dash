@@ -173,4 +173,11 @@ dashboard layer that neither provides.
 
 ## License
 
-To be decided. The dashboard and mod code are original.
+[MIT](LICENSE) — the mod and dashboard source in this repository is original
+work, free to use, modify, and distribute with attribution.
+
+Plague Dash is a mod for Plague Inc: Evolved, which is the property of Ndemic
+Creations. This project is not affiliated with or endorsed by Ndemic, and this
+license covers only the original code here — not the game or its proprietary
+assemblies that the mod compiles against but does not redistribute. The bundled
+[Chart.js](https://github.com/chartjs/Chart.js) is MIT-licensed by its contributors.
