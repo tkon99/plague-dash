@@ -31,8 +31,49 @@ namespace PlagueDash
             if (!Main.Enabled) return;
             var menu = GetCurrentMainMenu();
             if (menu == null) return;
-            try { DrawButton(menu); }
+            try
+            {
+                DisableMultiplayerButton(menu);
+                DrawButton(menu);
+            }
             catch (System.Exception e) { Main.Log("MenuButtonOverlay draw failed: " + e.Message); }
+        }
+
+        private static bool _mpButtonDisabled;
+
+        /// <summary>
+        /// Disables the multiplayer button on the main menu's start sub-screen.
+        /// Plague Dash is single-player-only: using it in multiplayer gives a
+        /// competitive advantage and could get the player banned. We hide the
+        /// button entirely so it can't even be clicked.
+        /// </summary>
+        private static void DisableMultiplayerButton(CMainMenuScreen menu)
+        {
+            try
+            {
+                // Get the active sub-screen (the start screen with Single Player / Multiplayer buttons).
+                object activeSub = HarmonyLib.AccessTools.Method(typeof(IGameScreen), "GetActiveSubScreen")
+                                   .Invoke(menu, null);
+                if (activeSub == null) { _mpButtonDisabled = false; return; }
+
+                // buttonMultiPlayer is on CMainStartSubScreen (a UIButton). Disable
+                // its GameObject so it can't be clicked and isn't visible.
+                var btn = HarmonyLib.AccessTools.Field(activeSub.GetType(), "buttonMultiPlayer")
+                          .GetValue(activeSub) as UIButton;
+                if (btn == null) return;
+
+                var go = btn.gameObject;
+                if (go != null && go.activeSelf)
+                {
+                    go.SetActive(false);
+                    if (!_mpButtonDisabled)
+                    {
+                        _mpButtonDisabled = true;
+                        Main.Log("Multiplayer button disabled on main menu (single-player-only mod).");
+                    }
+                }
+            }
+            catch (System.Exception e) { Main.Log("DisableMultiplayerButton: " + e.Message); }
         }
 
         /// <summary>The current screen if it's the main menu, else null.</summary>
@@ -363,6 +404,7 @@ namespace PlagueDash
         public static void DestroyIfExists()
         {
             _created = false;
+            _mpButtonDisabled = false;
             _extractAttempts = 0;
             _extractedOk = false;
             _nativeTex = null;
