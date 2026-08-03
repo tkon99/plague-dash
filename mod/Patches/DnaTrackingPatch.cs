@@ -19,6 +19,7 @@ namespace PlagueDash.Patches
         private static void Postfix(Disease __instance, Technology tech)
         {
             if (!Main.Enabled || !Main.Settings.Recording) return;
+            if (MultiplayerGuard.IsMultiplayer) return;
             DnaTrackingHelpers.EmitPurchase(__instance, tech, "evolve");
         }
     }
@@ -29,6 +30,7 @@ namespace PlagueDash.Patches
         private static void Postfix(Disease __instance, Technology tech)
         {
             if (!Main.Enabled || !Main.Settings.Recording) return;
+            if (MultiplayerGuard.IsMultiplayer) return;
             DnaTrackingHelpers.EmitPurchase(__instance, tech, "devolve");
         }
     }

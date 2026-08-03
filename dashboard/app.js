@@ -934,6 +934,22 @@ function connectSSE() {
     } catch { }
   });
 
+  // Multiplayer guard: the mod refuses to collect data in MP games (competitive-
+  // advantage / ban risk). Show a full-screen warning overlay.
+  es.addEventListener("multiplayer", (e) => {
+    try {
+      const d = JSON.parse(e.data);
+      const overlay = document.getElementById("mp-warning");
+      if (!overlay) return;
+      if (d.multiplayer) {
+        overlay.hidden = false;
+        setBadge("error", "multiplayer — disabled");
+      } else {
+        overlay.hidden = true;
+      }
+    } catch { }
+  });
+
   es.addEventListener("error", () => {
     // EventSource auto-reconnects; surface the state without spamming.
     setBadge("error", "reconnecting…");

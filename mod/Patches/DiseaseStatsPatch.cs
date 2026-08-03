@@ -72,6 +72,10 @@ namespace PlagueDash.Patches
         {
             if (!Main.Enabled || !Main.Settings.Recording) return;
 
+            // Single-player-only guard: never collect data in a multiplayer game.
+            // Using Plague Dash in MP gives a competitive advantage and risks a ban.
+            if (MultiplayerGuard.IsMultiplayer) return;
+
             // Run-end freeze: once the game is no longer InProgress (won/lost), stop
             // capturing so the post-run menu state (zeros) doesn't pollute the charts.
             // Finalize the meta status once.

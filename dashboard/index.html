@@ -10,6 +10,17 @@
   <script defer src="app.js"></script>
 </head>
 <body>
+  <!-- Multiplayer warning overlay: the mod disables data collection in MP games. -->
+  <div id="mp-warning" class="mp-warning" hidden>
+    <div class="mp-warning-box">
+      <span class="mp-warning-icon">☣</span>
+      <h2>Multiplayer game detected</h2>
+      <p>Plague Dash is a <strong>single-player-only</strong> mod. Using it in
+        multiplayer gives a competitive advantage and could get you banned.</p>
+      <p>Data collection has been disabled. Switch to a single-player game to
+        resume.</p>
+    </div>
+  </div>
   <header class="topbar">
     <div class="brand">
       <span class="logo">☣</span>

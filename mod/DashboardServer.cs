@@ -37,6 +37,7 @@ namespace PlagueDash
         // Connected SSE clients, so we can drop them all on shutdown.
         private static readonly List<TcpClient> _sseClients = new List<TcpClient>();
         private static readonly object _clientLock = new object();
+        private static bool _wasMultiplayer;  // tracks MP state transitions for SSE warning
 
         public static void Start(int port)
         {
@@ -211,6 +212,18 @@ namespace PlagueDash
             {
                 while (!_stopping && client.Connected)
                 {
+                    // Single-player guard: if a multiplayer game is detected, stop
+                    // streaming data and send a warning event so the dashboard can
+                    // show it. The guard check is cheap (one property read).
+                    bool mpNow = MultiplayerGuard.IsMultiplayer;
+                    if (mpNow != _wasMultiplayer)
+                    {
+                        _wasMultiplayer = mpNow;
+                        SendSSE(stream, "multiplayer",
+                            mpNow ? "{\"multiplayer\":true}" : "{\"multiplayer\":false}");
+                    }
+                    if (mpNow) { Thread.Sleep(500); continue; }
+
                     long ver = LiveState.Version;
                     if (ver != lastMetaVersion)
                     {

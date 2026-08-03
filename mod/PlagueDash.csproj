@@ -93,6 +93,7 @@
   <ItemGroup>
     <Compile Include="Main.cs" />
     <Compile Include="StatsRecorder.cs" />
+    <Compile Include="MultiplayerGuard.cs" />
     <Compile Include="LiveState.cs" />
     <Compile Include="DashboardServer.cs" />
     <Compile Include="MenuButtonOverlay.cs" />

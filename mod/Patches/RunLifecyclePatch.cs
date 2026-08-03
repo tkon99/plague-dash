@@ -20,6 +20,8 @@ namespace PlagueDash.Patches
         private static void Postfix()
         {
             if (!Main.Enabled) return;
+            // Single-player-only: don't archive/reset in a multiplayer game.
+            if (MultiplayerGuard.IsMultiplayer) return;
 
             // Archive the previous run (if it had any data), then reset for the new one.
             var archived = LiveState.ArchiveCurrent();

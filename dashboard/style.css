@@ -249,3 +249,21 @@ html, body {
   .cont-row { grid-template-columns: 1fr; }
   .cont-legend { flex-wrap: wrap; }
 }
+
+/* Multiplayer warning overlay */
+.mp-warning {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.85);
+  backdrop-filter: blur(4px);
+}
+.mp-warning[hidden] { display: none; }
+.mp-warning-box {
+  max-width: 440px; padding: 2rem 2.5rem;
+  text-align: center; border-radius: 12px;
+  background: #1a1213; border: 1px solid var(--dead, #c0392b);
+}
+.mp-warning-icon { font-size: 3rem; color: var(--dead, #c0392b); }
+.mp-warning-box h2 { margin: .5rem 0 1rem; color: #eee; }
+.mp-warning-box p { color: #ccc; line-height: 1.5; margin: .5rem 0; }
+.mp-warning-box strong { color: var(--dead, #e74c3c); }

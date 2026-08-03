@@ -5,6 +5,11 @@ Evolved to read live disease/cure/country stats, holds them in memory, and serve
 the dashboard UI + a live data stream to your browser from an embedded web server.
 One DLL, no other components. See the [project README](../README.md).
 
+> ⚠ **Single-player only.** This mod gives a competitive information advantage.
+> Using it in multiplayer could get you banned. The mod detects multiplayer games
+> (via `CGameManager.IsMultiplayerGame`) and disables all data collection — the
+> dashboard shows a warning overlay. Do not bypass this guard.
+
 > **You build this** — it's C#/.NET 4.8 source that compiles against your local
 > Plague Inc install. The build bakes the dashboard UI + Chart.js into the DLL.
 
@@ -27,6 +32,7 @@ updates than memory scanning or save-file parsing.
 
 Files:
 - `Main.cs` — UMM entry point; applies/removes patches, starts/stops the server, settings.
+- `MultiplayerGuard.cs` — detects MP sessions; guards all data-collection patches.
 - `Patches/DiseaseStatsPatch.cs` — the data collector (the important one).
 - `Patches/DnaTrackingPatch.cs` — captures each evolve/devolve as a DNA-spend event.
 - `Patches/RunLifecyclePatch.cs` — detects new-run to reset the live state + meta.
