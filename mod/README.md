@@ -6,9 +6,12 @@ the dashboard UI + a live data stream to your browser from an embedded web serve
 One DLL, no other components. See the [project README](../README.md).
 
 > ⚠ **Single-player only.** This mod gives a competitive information advantage.
-> Using it in multiplayer could get you banned. The mod detects multiplayer games
-> (via `CGameManager.IsMultiplayerGame`) and disables all data collection — the
-> dashboard shows a warning overlay. Do not bypass this guard.
+> Using it in multiplayer could get you banned. The mod blocks multiplayer at
+> two levels: the **Multiplayer button is hidden from the main menu**
+> (`CMainStartSubScreen.buttonMultiPlayer` GameObject set inactive), and if a
+> multiplayer game is somehow started, all data collection is disabled
+> (`MultiplayerGuard` checks `CGameManager.IsMultiplayerGame`). The dashboard
+> shows a warning overlay. Do not bypass this guard.
 
 > **You build this** — it's C#/.NET 4.8 source that compiles against your local
 > Plague Inc install. The build bakes the dashboard UI + Chart.js into the DLL.
@@ -33,6 +36,7 @@ updates than memory scanning or save-file parsing.
 Files:
 - `Main.cs` — UMM entry point; applies/removes patches, starts/stops the server, settings.
 - `MultiplayerGuard.cs` — detects MP sessions; guards all data-collection patches.
+- `MenuButtonOverlay.cs` — IMGUI "Open Plague Dash" button + hides the MP button on the menu.
 - `Patches/DiseaseStatsPatch.cs` — the data collector (the important one).
 - `Patches/DnaTrackingPatch.cs` — captures each evolve/devolve as a DNA-spend event.
 - `Patches/RunLifecyclePatch.cs` — detects new-run to reset the live state + meta.

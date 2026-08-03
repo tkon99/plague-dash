@@ -114,10 +114,18 @@ namespace PlagueDash.Patches
             s.infected = F(__instance, "totalInfected") ?? F(__instance, "infectedPopulation");
             s.dead = F(__instance, "totalDead");
 
-            // --- core stats ---
-            s.inf = F(__instance, "globalInfectiousness");
+            // --- core stats (use the VISUAL values the game's UI shows the player) ---
+            // The game smooths/ramps these over turns: the raw globalInfectiousness /
+            // globalLethality jump instantly on evolve, but the player only sees
+            // reproductionVisual / mortalityVisual which ramp gradually. Showing the
+            // raw values would disclose the underlying lethality lag — i.e. let the
+            // player see a coming spike before the game's own bar reveals it. We use
+            // the same visual values the disease screen's bars use (via
+            // Disease.GetInfSevLethTotal → reproductionVisual / mortalityVisual).
+            // Severity has no visual ramp; it's read directly.
+            s.inf = F(__instance, "reproductionVisual") ?? F(__instance, "globalInfectiousness");
             s.sev = F(__instance, "globalSeverity");
-            s.let = F(__instance, "globalLethality");
+            s.let = F(__instance, "mortalityVisual") ?? F(__instance, "globalLethality");
 
             // --- cure ---
             s.cureNeed = F(__instance, "cureRequirements");

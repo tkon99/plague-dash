@@ -5,11 +5,11 @@ the death-vs-cure race, your plague's stats, the DNA economy, infections across
 every continent, and every trait you evolve, marked on the timeline so you can
 see what each decision *did*.
 
-> ⚠ **Single-player only.** Plague Dash gives you a competitive information
-> advantage, so using it in multiplayer (Versus or Co-op) could get you banned.
-> The mod detects multiplayer games and **disables all data collection
-> automatically** — the dashboard shows a warning overlay instead. Do not bypass
-> this.
+> ⚠ **Single-player only — multiplayer is disabled.** Plague Dash gives you a
+> competitive information advantage, so using it in multiplayer (Versus or Co-op)
+> could get you banned. The mod **removes the Multiplayer button from the main
+> menu entirely** and refuses to collect data if a multiplayer game is somehow
+> started. Disable Plague Dash in UMM to access multiplayer.
 
 <p align="center">
   <img src="docs/img/game-menu.jpg" alt="Plague Dash entry on the Plague Inc main menu" width="480"><br>
