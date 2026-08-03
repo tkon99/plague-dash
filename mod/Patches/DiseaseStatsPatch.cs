@@ -108,24 +108,53 @@ namespace PlagueDash.Patches
 
             if (day == _lastDay) return; // already sampled this day
 
+            // Post-run garbage guard: after the game ends (everyone dead / cure
+            // complete), the disease object gets RESET to zeros during the transition
+            // to the end-screen replay. This can happen before CurrentGameState reaches
+            // EndGame(5), so the freeze above hasn't kicked in yet. Detect this by
+            // checking for a massive regression in dead/infected — the dead count can
+            // never legitimately drop from billions to near-zero. If we see it, treat
+            // the run as ended.
+            if (_lastDay > 0 && day > 0 && day < _lastDay)
+            {
+                if (!_runEnded)
+                {
+                    _runEnded = true;
+                    Main.Log("Run ended (day regression " + _lastDay + "→" + day
+                           + ") — likely end-screen transition, freezing.");
+                }
+                return;
+            }
+
             var s = new DiseaseSnapshot { day = day };
 
             // --- population totals (optional, best-effort) ---
             s.infected = F(__instance, "totalInfected") ?? F(__instance, "infectedPopulation");
             s.dead = F(__instance, "totalDead");
 
-            // --- core stats (use the VISUAL values the game's UI shows the player) ---
-            // The game smooths/ramps these over turns: the raw globalInfectiousness /
-            // globalLethality jump instantly on evolve, but the player only sees
-            // reproductionVisual / mortalityVisual which ramp gradually. Showing the
-            // raw values would disclose the underlying lethality lag — i.e. let the
-            // player see a coming spike before the game's own bar reveals it. We use
-            // the same visual values the disease screen's bars use (via
-            // Disease.GetInfSevLethTotal → reproductionVisual / mortalityVisual).
-            // Severity has no visual ramp; it's read directly.
-            s.inf = F(__instance, "reproductionVisual") ?? F(__instance, "globalInfectiousness");
-            s.sev = F(__instance, "globalSeverity");
-            s.let = F(__instance, "mortalityVisual") ?? F(__instance, "globalLethality");
+            // --- core stats (use the game's own display computation) ---
+            // The game's per-turn GameStats (used by its own graph screen) and the
+            // disease-screen bars both use Disease.GetInfSevLethTotal(), which
+            // applies visual scaling to the raw globalInfectiousness/globalLethality.
+            // Reading the raw values discloses the underlying per-turn lethality
+            // oscillation that the UI smooths away — so we call the same method.
+            // Returns Single[3] in method-name order: [infectivity, severity, lethality].
+            try
+            {
+                var result = AccessTools.Method(typeof(Disease), "GetInfSevLethTotal")
+                                .Invoke(__instance, null);
+                if (result is float[] totals && totals.Length >= 3)
+                {
+                    s.inf = (double)totals[0];
+                    s.sev = (double)totals[1];
+                    s.let = (double)totals[2];
+                }
+            }
+            catch (System.Exception e) { Main.Log("GetInfSevLethTotal failed: " + e.Message); }
+            // Fall back to direct reads if the method call failed.
+            s.inf = s.inf ?? F(__instance, "globalInfectiousness");
+            s.sev = s.sev ?? F(__instance, "globalSeverity");
+            s.let = s.let ?? F(__instance, "globalLethality");
 
             // --- cure ---
             s.cureNeed = F(__instance, "cureRequirements");
